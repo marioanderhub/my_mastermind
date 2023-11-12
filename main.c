@@ -23,15 +23,18 @@ int check_code_valid(char *code) {
     }
 }
 
-void read_guess(char *guess) {
+int read_guess(char *guess) {
     char char_read;
     int i = 0;
-    while(read(1, &char_read, 1) && char_read != '\n') {
+    int bytes_read = 0;
+    while((bytes_read = read(1, &char_read, 1)) > 0 && char_read != '\n') {
         if (i < CODE_SIZE) {
             guess[i] = char_read;
             i++;
         }
     }
+    // if bytes_read <= 0 either EOF reached resp. crtl + d encountered (0) or error while reading (-1)
+    return bytes_read > 0;
 }
 
 int evaluate(char *secret_code, char *user_code) {
@@ -65,7 +68,18 @@ int evaluate(char *secret_code, char *user_code) {
     return placed == CODE_SIZE;
 }
 
+void generate_random_secret(char *secret) {
+    int i = 0;
+    while (i < CODE_SIZE) {
+        secret[i] = i + 48;
+        i++;
+    }
+}
+
 void setup_game(char *secret, int *max_guesses, int argc, char **argv) {
+    int max_guesses_input = 0;
+    int secret_valid = 0;
+
     for (int i = 1; i < argc; i++) {
         if(strcmp(argv[i], "-c") == 0) {
             if (i + 1 < argc) {
@@ -74,16 +88,28 @@ void setup_game(char *secret, int *max_guesses, int argc, char **argv) {
                         secret[j] = argv[i + 1][j];
                     }
                 }
-                if (!check_code_valid(secret)) {
-                    printf("Wrong input!\n");
+                secret_valid = check_code_valid(secret);
+                if (!secret_valid) {
+                    printf("Secret code is invalid. Random secret code was generated.\n");
                 }
+            } else {
+                printf("No secret code provided. Random secret code was generated.\n");
             }
         }
         if (strcmp(argv[i], "-t") == 0) {
             if (i + 1 < argc) {
-                *max_guesses = atoi(argv[i + 1]);
+                if ((max_guesses_input = atoi(argv[i + 1])) > 0) {
+                    *max_guesses = max_guesses_input;
+                } else {
+                    printf("Number of attempts is invalid. Default of %d is used.\n", DEFAULT_GUESSES);
+                }
+            } else {
+                printf("No number of attempts provided. Default of %d is used.\n", DEFAULT_GUESSES);
             }
         }
+    }
+    if (!secret_valid) {
+        generate_random_secret(secret);
     }
 }
 
@@ -95,15 +121,18 @@ int main(int argc, char **argv) {
     char *guess = malloc(sizeof(*guess) * (CODE_SIZE + 1));
     
     setup_game(secret, &max_guesses, argc, argv);
-    printf("Recorded secret: %s\n", secret);
-    printf("Recorded max guesses: %d\n", max_guesses);
-
+    //printf("Recorded secret: %s\n", secret);
+    //printf("Recorded max guesses: %d\n", max_guesses);
     printf("Will you find the secret code?\nPlease enter a valid guess\n");
     while (round < max_guesses) {
         printf("---\nRound %d\n", round);
         valid = 0;
         while (!valid) {
-            read_guess(guess);
+            if (!read_guess(guess)) {
+                free(secret);
+                free(guess);
+                return 0;
+            }
             if (!(valid = check_code_valid(guess))) {
                 printf("Wrong input!\n");
             }
@@ -115,7 +144,6 @@ int main(int argc, char **argv) {
         }
         round++;
     }
-
     free(secret);
     free(guess);
     return 0;
