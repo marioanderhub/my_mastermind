@@ -35,6 +35,7 @@ int read_guess(char *guess) {
         }
     }
     // if bytes_read <= 0 either EOF reached resp. crtl + d encountered (0) or error while reading (-1)
+    // TODO: function should only return whether error or eof occurred while reading, all checking validity of code should happen in check_code_valid
     return bytes_read > 0;
 }
 
@@ -69,22 +70,21 @@ int evaluate(char *secret_code, char *user_code) {
         printf("Congratz! You did it!\n");
         return 1;
     } else {
-        printf("Well placed pieces: %d\n", placed);
-        printf("Misplaced pieces: %d\n", misplaced);
+        printf("Well placed pieces: %d\nMisplaced pieces: %d\n", placed, misplaced);
         return 0;
     }
 }
 
 void generate_random_secret(char *secret) {
+    srand(time(NULL));
     int i = 0;
     while (i < CODE_SIZE) {
-        srand(time(NULL) + i);
-        secret[i] = rand() % 9 + 48;
-        //printf("%d\n", secret[i]);
+        secret[i] = rand() % 9 + '0';
         i++;
     }
 }
 
+// TODO: simplify? error handling?
 void setup_game(char *secret, int *max_guesses, int argc, char **argv) {
     int max_guesses_input = 0;
     int secret_valid = 0;
@@ -126,34 +126,42 @@ int main(int argc, char **argv) {
     int max_guesses = DEFAULT_GUESSES;
     int round = 0;
     int valid = 0;
+    // opting for fixed-size arrays instead of dynamic memory allocation, bc array size known at compile time
+    // and lifetime of array is limited to main() and its subfunctions.
+    char secret[CODE_SIZE + 1] = {'\0'};
+    char guess[CODE_SIZE + 1] = {'\0'};
+    /*
     char *secret = malloc(sizeof(*secret) * (CODE_SIZE + 1));
     char *guess = malloc(sizeof(*guess) * (CODE_SIZE + 1));
+    */
     
     setup_game(secret, &max_guesses, argc, argv);
-    //printf("Recorded secret: %s\n", secret);
-    //printf("Recorded max guesses: %d\n", max_guesses);
-    printf("Will you find the secret code?\n");
-    printf("Please enter a valid guess\n");
+    printf("Will you find the secret code?\nPlease enter a valid guess\n");
     while (round < max_guesses) {
         printf("---\nRound %d\n", round);
+        // TODO: outsource
         valid = 0;
         while (!valid) {
             if (!read_guess(guess)) {
+                /*
                 free(secret);
                 free(guess);
+                */
                 return 0;
             }
             if (!(valid = check_code_valid(guess))) {
                 printf("Wrong input!\n");
             }
         }
-        //printf("Recorded guess: %s\n", guess);
+        //
         if (evaluate(secret, guess)) {
             break;
         }
         round++;
     }
+    /*
     free(secret);
     free(guess);
+    */
     return 0;
 }
