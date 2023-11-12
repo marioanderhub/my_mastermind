@@ -1,28 +1,40 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define CODE_SIZE 4
+#define DEFAULT_GUESSES 10
 
-void read_guess(char *guess) {
-    char char_read;
-    int index = 0;
-    int invalid = 0;
-    while(read(1, &char_read, 1) && char_read != '\n') {
-        if (index < CODE_SIZE) {
-            if (char_read < '0' || char_read > '8') {
-                invalid = 1;
-            }
-            guess[index] = char_read;
-            index++;
-        }
+int check_code_valid(char *code) {
+    int i = 0;
+    while (code[i]) {
+        if (code[i] < '0' || code[i] > '8')
+            break;
+        i++;
     }
-    if (invalid || index < CODE_SIZE) {
-        printf("Wrong input!\n");
+    if (i < CODE_SIZE) {
+        // code invalid
+        return 0;
+    }
+    else {
+        // code valid
+        return 1;
     }
 }
 
-void evaluate(char *secret_code, char *user_code) {
+void read_guess(char *guess) {
+    char char_read;
+    int i = 0;
+    while(read(1, &char_read, 1) && char_read != '\n') {
+        if (i < CODE_SIZE) {
+            guess[i] = char_read;
+            i++;
+        }
+    }
+}
+
+int evaluate(char *secret_code, char *user_code) {
     int matched[CODE_SIZE] = {0};
     int placed = 0;
     int misplaced = 0;
@@ -49,16 +61,60 @@ void evaluate(char *secret_code, char *user_code) {
             }
         }
     }
-    printf("placed: %d, misplaced: %d", placed, misplaced);
+    printf("Well placed pieces: %d\nMisplaced pieces: %d\n", placed, misplaced);
+    return placed == CODE_SIZE;
 }
 
-int main(void) {
+void setup_game(char *secret, int *max_guesses, int argc, char **argv) {
+    for (int i = 1; i < argc; i++) {
+        if(strcmp(argv[i], "-c") == 0) {
+            if (i + 1 < argc) {
+                for (int j = 0; argv[i + 1][j] != '\0'; j++) {
+                    if (j < CODE_SIZE) {
+                        secret[j] = argv[i + 1][j];
+                    }
+                }
+                if (!check_code_valid(secret)) {
+                    printf("Wrong input!\n");
+                }
+            }
+        }
+        if (strcmp(argv[i], "-t") == 0) {
+            if (i + 1 < argc) {
+                *max_guesses = atoi(argv[i + 1]);
+            }
+        }
+    }
+}
+
+int main(int argc, char **argv) {
+    int max_guesses = DEFAULT_GUESSES;
+    int round = 0;
+    int valid = 0;
     char *secret = malloc(sizeof(*secret) * (CODE_SIZE + 1));
     char *guess = malloc(sizeof(*guess) * (CODE_SIZE + 1));
+    
+    setup_game(secret, &max_guesses, argc, argv);
+    printf("Recorded secret: %s\n", secret);
+    printf("Recorded max guesses: %d\n", max_guesses);
 
-    read_guess(guess);
-    printf("recorded input: %s\n", guess);
-    evaluate(secret, guess);
+    printf("Will you find the secret code?\nPlease enter a valid guess\n");
+    while (round < max_guesses) {
+        printf("---\nRound %d\n", round);
+        valid = 0;
+        while (!valid) {
+            read_guess(guess);
+            if (!(valid = check_code_valid(guess))) {
+                printf("Wrong input!\n");
+            }
+        }
+        //printf("Recorded guess: %s\n", guess);
+        if (evaluate(secret, guess)) {
+            printf("Congratz! You did it!\n");
+            break;
+        }
+        round++;
+    }
 
     free(secret);
     free(guess);
