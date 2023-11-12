@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define CODE_SIZE 4
 #define DEFAULT_GUESSES 10
@@ -27,7 +28,7 @@ int read_guess(char *guess) {
     char char_read;
     int i = 0;
     int bytes_read = 0;
-    while((bytes_read = read(1, &char_read, 1)) > 0 && char_read != '\n') {
+    while((bytes_read = read(0, &char_read, 1)) > 0 && char_read != '\n') {
         if (i < CODE_SIZE) {
             guess[i] = char_read;
             i++;
@@ -64,14 +65,22 @@ int evaluate(char *secret_code, char *user_code) {
             }
         }
     }
-    printf("Well placed pieces: %d\nMisplaced pieces: %d\n", placed, misplaced);
-    return placed == CODE_SIZE;
+    if (placed == CODE_SIZE) {
+        printf("Congratz! You did it!\n");
+        return 1;
+    } else {
+        printf("Well placed pieces: %d\n", placed);
+        printf("Misplaced pieces: %d\n", misplaced);
+        return 0;
+    }
 }
 
 void generate_random_secret(char *secret) {
     int i = 0;
     while (i < CODE_SIZE) {
-        secret[i] = i + 48;
+        srand(time(NULL) + i);
+        secret[i] = rand() % 9 + 48;
+        //printf("%d\n", secret[i]);
         i++;
     }
 }
@@ -123,7 +132,8 @@ int main(int argc, char **argv) {
     setup_game(secret, &max_guesses, argc, argv);
     //printf("Recorded secret: %s\n", secret);
     //printf("Recorded max guesses: %d\n", max_guesses);
-    printf("Will you find the secret code?\nPlease enter a valid guess\n");
+    printf("Will you find the secret code?\n");
+    printf("Please enter a valid guess\n");
     while (round < max_guesses) {
         printf("---\nRound %d\n", round);
         valid = 0;
@@ -139,7 +149,6 @@ int main(int argc, char **argv) {
         }
         //printf("Recorded guess: %s\n", guess);
         if (evaluate(secret, guess)) {
-            printf("Congratz! You did it!\n");
             break;
         }
         round++;
