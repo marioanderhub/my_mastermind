@@ -7,6 +7,15 @@
 #define CODE_SIZE 4
 #define DEFAULT_GUESSES 10
 
+/*
+*
+* Evaluates whether the provided code is a valid mastermind code.
+*
+* @param char *code
+*
+* @return 1 if code is valid, else 0
+*
+*/
 int check_code_valid(char *code) {
     int i = 0;
     while (code[i]) {
@@ -14,17 +23,21 @@ int check_code_valid(char *code) {
             break;
         i++;
     }
-    if (i < CODE_SIZE) {
-        // code invalid
-        return 0;
-    }
-    else {
-        // code valid
-        return 1;
-    }
+    return i == CODE_SIZE;
 }
 
-int read_guess(char *guess) {
+// return 1 on success and 0 on error or eof
+/*
+*
+* Reads from stdin character by character and puts the first CODE_SIZE
+* number of characters into the provided guess buffer.
+*
+* @param char *guess
+*
+* @return 1 if character(s) successfully read, 0 on error or EOF
+*
+*/
+int read_from_stdin(char *guess) {
     char char_read;
     int i = 0;
     int bytes_read = 0;
@@ -34,31 +47,65 @@ int read_guess(char *guess) {
             i++;
         }
     }
-    // if bytes_read <= 0 either EOF reached resp. crtl + d encountered (0) or error while reading (-1)
-    // TODO: function should only return whether error or eof occurred while reading, all checking validity of code should happen in check_code_valid
+    printf("%d\n", bytes_read);
+    // if bytes_read <= 0 either EOF (crtl + d) encountered (0) or error while reading (-1)
     return bytes_read > 0;
 }
 
-int evaluate(char *secret_code, char *user_code) {
+// return 1 on success and 0 on error or eof
+/*
+*
+* Reads code from user input. If no valid code was entered,
+* the user is notified and asked to re-enter a code.
+*
+* @param char *guess
+*
+* @return 1 if code is valid, 0 if error or EOF encountered while reading
+*
+*/
+int read_guess(char *guess) {
+    int valid = 0;
+    while (!valid) {
+        if (!read_from_stdin(guess)) {
+            return 0;
+        }
+        if (!(valid = check_code_valid(guess))) {
+            printf("Wrong input!\n");
+        }
+    }
+    return 1;
+}
+
+/*
+*
+* Compares the guess to the secret code and evaluates the number of
+* correctly placed and misplaced digits.
+*
+* @param char *secret
+* @param char *guess
+*
+* @return 1 if guess == code, else 0
+*
+*/
+int evaluate(char *secret, char *guess) {
     int matched[CODE_SIZE] = {0};
     int placed = 0;
     int misplaced = 0;
 
     // check for correctly placed
-    // iterate user_code and secret_code together
     for(int i = 0; i < CODE_SIZE; i++) {
-        if(user_code[i] == secret_code[i]) {
+        if(guess[i] == secret[i]) {
             matched[i] = 1;
             placed++;
         }
     }
     // check for misplaced
-    // iterate user_code
+    // iterate guess
     for (int i = 0; i < CODE_SIZE; i++) {
-        if (user_code[i] != secret_code[i]) {
-            // iterate secret_code
+        if (guess[i] != secret[i]) {
+            // iterate secret
             for (int j = 0; j < CODE_SIZE; j++) {
-                if (!matched[j] && user_code[i] == secret_code[j]) {
+                if (!matched[j] && guess[i] == secret[j]) {
                     matched[j] = 1;
                     misplaced++;
                     break;
@@ -75,6 +122,13 @@ int evaluate(char *secret_code, char *user_code) {
     }
 }
 
+/*
+*
+* Generate a pseudo-random secret code and writes it to the provided buffer secret.
+*
+* @param char *secret
+*
+*/
 void generate_random_secret(char *secret) {
     srand(time(NULL));
     int i = 0;
@@ -84,7 +138,17 @@ void generate_random_secret(char *secret) {
     }
 }
 
-// TODO: simplify? error handling?
+/*
+*
+* Handles program flags and sets up the mastermind game according to
+* the provided user parameters.
+*
+* @param char *secret
+* @param int *max_guesses
+* @param int argc
+* @param char **argv
+*
+*/
 void setup_game(char *secret, int *max_guesses, int argc, char **argv) {
     int max_guesses_input = 0;
     int secret_valid = 0;
@@ -125,43 +189,20 @@ void setup_game(char *secret, int *max_guesses, int argc, char **argv) {
 int main(int argc, char **argv) {
     int max_guesses = DEFAULT_GUESSES;
     int round = 0;
-    int valid = 0;
-    // opting for fixed-size arrays instead of dynamic memory allocation, bc array size known at compile time
-    // and lifetime of array is limited to main() and its subfunctions.
-    char secret[CODE_SIZE + 1] = {'\0'};
-    char guess[CODE_SIZE + 1] = {'\0'};
-    /*
-    char *secret = malloc(sizeof(*secret) * (CODE_SIZE + 1));
-    char *guess = malloc(sizeof(*guess) * (CODE_SIZE + 1));
-    */
+    char secret[5] = {'\0'};
+    char guess[5] = {'\0'};
     
     setup_game(secret, &max_guesses, argc, argv);
     printf("Will you find the secret code?\nPlease enter a valid guess\n");
     while (round < max_guesses) {
         printf("---\nRound %d\n", round);
-        // TODO: outsource
-        valid = 0;
-        while (!valid) {
-            if (!read_guess(guess)) {
-                /*
-                free(secret);
-                free(guess);
-                */
-                return 0;
-            }
-            if (!(valid = check_code_valid(guess))) {
-                printf("Wrong input!\n");
-            }
+        if (!read_guess(guess)) {
+            return 0;
         }
-        //
         if (evaluate(secret, guess)) {
-            break;
+            return 0;
         }
         round++;
     }
-    /*
-    free(secret);
-    free(guess);
-    */
     return 0;
 }
