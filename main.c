@@ -7,6 +7,14 @@
 #define CODE_SIZE 4
 #define DEFAULT_GUESSES 10
 
+struct game {
+    int max_guesses;
+    char secret[CODE_SIZE + 1];
+    char guess[CODE_SIZE + 1];
+    int placed;
+    int misplaced;
+};
+
 /*
 *
 * Evaluates whether the provided code is a valid mastermind code.
@@ -26,7 +34,6 @@ int check_code_valid(char *code) {
     return i == CODE_SIZE;
 }
 
-// return 1 on success and 0 on error or eof
 /*
 *
 * Reads from stdin character by character and puts the first CODE_SIZE
@@ -52,7 +59,6 @@ int read_from_stdin(char *guess) {
     return bytes_read > 0;
 }
 
-// return 1 on success and 0 on error or eof
 /*
 *
 * Reads code from user input. If no valid code was entered,
@@ -113,13 +119,7 @@ int evaluate(char *secret, char *guess) {
             }
         }
     }
-    if (placed == CODE_SIZE) {
-        printf("Congratz! You did it!\n");
-        return 1;
-    } else {
-        printf("Well placed pieces: %d\nMisplaced pieces: %d\n", placed, misplaced);
-        return 0;
-    }
+    return placed == CODE_SIZE;
 }
 
 /*
@@ -149,19 +149,22 @@ void generate_random_secret(char *secret) {
 * @param char **argv
 *
 */
-void setup_game(char *secret, int *max_guesses, int argc, char **argv) {
+void setup_game(struct game *mastermind, int argc, char **argv) {
     int max_guesses_input = 0;
     int secret_valid = 0;
+
+    // initialize game state
+    // read and handle parameter flags
 
     for (int i = 1; i < argc; i++) {
         if(strcmp(argv[i], "-c") == 0) {
             if (i + 1 < argc) {
                 for (int j = 0; argv[i + 1][j] != '\0'; j++) {
                     if (j < CODE_SIZE) {
-                        secret[j] = argv[i + 1][j];
+                        mastermind->secret[j] = argv[i + 1][j];
                     }
                 }
-                secret_valid = check_code_valid(secret);
+                secret_valid = check_code_valid(mastermind->secret);
                 if (!secret_valid) {
                     printf("Secret code is invalid. Random secret code was generated.\n");
                 }
@@ -182,27 +185,57 @@ void setup_game(char *secret, int *max_guesses, int argc, char **argv) {
         }
     }
     if (!secret_valid) {
-        generate_random_secret(secret);
+        generate_random_secret(mastermind->secret);
     }
 }
 
-int main(int argc, char **argv) {
-    int max_guesses = DEFAULT_GUESSES;
+int play_game(struct game *mastermind) {
     int round = 0;
-    char secret[5] = {'\0'};
-    char guess[5] = {'\0'};
-    
-    setup_game(secret, &max_guesses, argc, argv);
-    printf("Will you find the secret code?\nPlease enter a valid guess\n");
-    while (round < max_guesses) {
+    int success = 0;
+
+    while (round < mastermind->max_guesses) {
         printf("---\nRound %d\n", round);
-        if (!read_guess(guess)) {
+        if (!read_guess(mastermind->guess)) {
             return 0;
         }
-        if (evaluate(secret, guess)) {
-            return 0;
+        success = evaluate(mastermind->secret, mastermind->guess);
+        if (success) {
+            // solution found
+            return 1;
+        } else {
+            // no solution found in current attempt
+            printf("Well placed pieces: %d\nMisplaced pieces: %d\n", mastermind->placed, mastermind->misplaced);
         }
         round++;
+    }
+    // no solution found after all attempts
+    return 0;
+}
+
+void initialize_game_state(struct game *mastermind) {
+    int i = 0;
+    mastermind->max_guesses = DEFAULT_GUESSES;
+    while (i < CODE_SIZE + 1) {
+        mastermind->guess[i] = '\0';
+        mastermind->secret[i] = '\0';
+        i++;
+    }
+    mastermind->placed = 0;
+    mastermind->misplaced = 0;
+}
+
+int main(int argc, char **argv) {
+    struct game mastermind;
+    int success = 0;
+    
+    initialize_game_state(&mastermind);
+    setup_game(&mastermind, argc, argv);
+    printf("Will you find the secret code?\nPlease enter a valid guess\n");
+    success = play_game(&mastermind);
+    if (success) {
+        printf("Congratz! You did it!\n");
+    } else {
+        reveal_secret(&mastermind);
     }
     return 0;
 }
