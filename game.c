@@ -1,12 +1,10 @@
 #include "utils.h"
 #include "game.h"
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
-void initialize_game(struct game *mastermind) {
+void initialize_game(game *mastermind) {
     mastermind->max_guesses = DEFAULT_GUESSES;
     set_str_empty(mastermind->secret, CODE_SIZE + 1);
     set_str_empty(mastermind->guess, CODE_SIZE + 1);
@@ -14,27 +12,60 @@ void initialize_game(struct game *mastermind) {
     mastermind->misplaced = 0;
 }
 
-void play_game(struct game *mastermind) {
-    int round = 0;
-
-    while (round < mastermind->max_guesses) {
-        printf("---\nRound %d\n", round);
-        set_str_empty(mastermind->guess, CODE_SIZE + 1);
-        if (!read_guess(mastermind->guess)) {
-            // reading failed or EOF encountered
-            return;
+void handle_c_flag(game *mastermind, int argc, char **argv, int i) {
+    if (i + 1 < argc) {
+        for (int j = 0; argv[i + 1][j] != '\0'; j++) {
+            if (j < CODE_SIZE) {
+                mastermind->secret[j] = argv[i + 1][j];
+            }
         }
-        if (evaluate(mastermind)) {
-                printf("Congratz! You did it!\n");
-            return;
-        } else {
-            // no solution found in current attempt
-            printf("Well placed pieces: %d\nMisplaced pieces: %d\n", mastermind->placed, mastermind->misplaced);
+        if (!check_code_valid(mastermind->secret, CODE_SIZE)) {
+            printf("Secret code is invalid. Random secret code was generated.\n");
         }
-        round++;
+    } else {
+        printf("Option -c requires an argument, but none was provided. Random secret code was generated.\n");
     }
-    printf("GAME OVER! The secret code is: %s\n", mastermind->secret);
-    return;
+}
+
+void handle_t_flag(game *mastermind, int argc, char **argv, int i) {
+    int max_guesses_input = 0;
+    if (i + 1 < argc) {
+        max_guesses_input = atoi(argv[i + 1]);
+        if (max_guesses_input > 0) {
+            mastermind->max_guesses = max_guesses_input;
+        } else {
+            printf("Number of attempts is invalid. Default of %d is used.\n", DEFAULT_GUESSES);
+        }
+    } else {
+        printf("Option -t requires an argument, but none was provided. The default of attempts %d attempts was set.\n", DEFAULT_GUESSES);
+    }
+}
+
+
+/*
+*
+* Handles program flags and sets up the mastermind game according to
+* the provided user parameters.
+*
+* @param char *secret
+* @param int *max_guesses
+* @param int argc
+* @param char **argv
+*
+*/
+void setup_game(game *mastermind, int argc, char **argv) {
+
+    for (int i = 1; i < argc; i++) {
+        if(strcmp(argv[i], "-c") == 0) {
+            handle_c_flag(mastermind, argc, argv, i);
+        }
+        if (strcmp(argv[i], "-t") == 0) {
+            handle_t_flag(mastermind, argc, argv, i);
+        }
+    }
+    if (!check_code_valid(mastermind->secret, CODE_SIZE)) {
+        generate_random_secret(mastermind->secret, CODE_SIZE, 9);
+    }
 }
 
 /*
@@ -71,9 +102,11 @@ int read_guess(char *guess) {
 * @return 1 if guess == code, else 0
 *
 */
-int evaluate(struct game *mastermind) {
+int evaluate(game *mastermind) {
     int matched[CODE_SIZE] = {0};
 
+    mastermind->placed = 0;
+    mastermind->misplaced = 0;
     // check for correctly placed
     for(int i = 0; i < CODE_SIZE; i++) {
         if(mastermind->guess[i] == mastermind->secret[i]) {
@@ -96,53 +129,26 @@ int evaluate(struct game *mastermind) {
     return mastermind->placed == CODE_SIZE;
 }
 
-/*
-*
-* Handles program flags and sets up the mastermind game according to
-* the provided user parameters.
-*
-* @param char *secret
-* @param int *max_guesses
-* @param int argc
-* @param char **argv
-*
-*/
-void setup_game(struct game *mastermind, int argc, char **argv) {
-    int max_guesses_input = 0;
-    int secret_valid = 0;
 
-    // initialize game state
-    // read and handle parameter flags
+void play_game(game *mastermind) {
+    int round = 0;
 
-    for (int i = 1; i < argc; i++) {
-        if(strcmp(argv[i], "-c") == 0) {
-            if (i + 1 < argc) {
-                for (int j = 0; argv[i + 1][j] != '\0'; j++) {
-                    if (j < CODE_SIZE) {
-                        mastermind->secret[j] = argv[i + 1][j];
-                    }
-                }
-                secret_valid = check_code_valid(mastermind->secret, CODE_SIZE);
-                if (!secret_valid) {
-                    printf("Secret code is invalid. Random secret code was generated.\n");
-                }
-            } else {
-                printf("No secret code provided. Random secret code was generated.\n");
-            }
+    while (round < mastermind->max_guesses) {
+        printf("---\nRound %d\n", round);
+        set_str_empty(mastermind->guess, CODE_SIZE + 1);
+        if (!read_guess(mastermind->guess)) {
+            // reading failed or EOF encountered
+            return;
         }
-        if (strcmp(argv[i], "-t") == 0) {
-            if (i + 1 < argc) {
-                if ((max_guesses_input = atoi(argv[i + 1])) > 0) {
-                    mastermind->max_guesses = max_guesses_input;
-                } else {
-                    printf("Number of attempts is invalid. Default of %d is used.\n", DEFAULT_GUESSES);
-                }
-            } else {
-                printf("No number of attempts provided. Default of %d is used.\n", DEFAULT_GUESSES);
-            }
+        if (evaluate(mastermind)) {
+            printf("Congratz! You did it!\n");
+            return;
+        } else {
+            // no solution found in current attempt
+            printf("Well placed pieces: %d\nMisplaced pieces: %d\n", mastermind->placed, mastermind->misplaced);
         }
+        round++;
     }
-    if (!secret_valid) {
-        generate_random_secret(mastermind->secret, CODE_SIZE, 9);
-    }
+    printf("GAME OVER! The secret code is: %s\n", mastermind->secret);
+    return;
 }
