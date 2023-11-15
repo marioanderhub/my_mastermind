@@ -17,50 +17,6 @@ struct game {
 
 /*
 *
-* Evaluates whether the provided code is a valid mastermind code.
-*
-* @param char *code
-*
-* @return 1 if code is valid, else 0
-*
-*/
-int check_code_valid(char *code) {
-    int i = 0;
-    while (code[i]) {
-        if (code[i] < '0' || code[i] > '8')
-            break;
-        i++;
-    }
-    return i == CODE_SIZE;
-}
-
-/*
-*
-* Reads from stdin character by character and puts the first CODE_SIZE
-* number of characters into the provided guess buffer.
-*
-* @param char *guess
-*
-* @return 1 if character(s) successfully read, 0 on error or EOF
-*
-*/
-int read_from_stdin(char *guess) {
-    char char_read;
-    int i = 0;
-    int bytes_read = 0;
-    while((bytes_read = read(0, &char_read, 1)) > 0 && char_read != '\n') {
-        if (i < CODE_SIZE) {
-            guess[i] = char_read;
-            i++;
-        }
-    }
-    printf("%d\n", bytes_read);
-    // if bytes_read <= 0 either EOF (crtl + d) encountered (0) or error while reading (-1)
-    return bytes_read > 0;
-}
-
-/*
-*
 * Reads code from user input. If no valid code was entered,
 * the user is notified and asked to re-enter a code.
 *
@@ -72,10 +28,10 @@ int read_from_stdin(char *guess) {
 int read_guess(char *guess) {
     int valid = 0;
     while (!valid) {
-        if (!read_from_stdin(guess)) {
+        if (!read_from_stdin(guess, CODE_SIZE)) {
             return 0;
         }
-        if (!(valid = check_code_valid(guess))) {
+        if (!(valid = check_code_valid(guess, CODE_SIZE))) {
             printf("Wrong input!\n");
         }
     }
@@ -93,49 +49,31 @@ int read_guess(char *guess) {
 * @return 1 if guess == code, else 0
 *
 */
-int evaluate(char *secret, char *guess) {
+int evaluate(struct game *mastermind) {
     int matched[CODE_SIZE] = {0};
-    int placed = 0;
-    int misplaced = 0;
 
     // check for correctly placed
     for(int i = 0; i < CODE_SIZE; i++) {
-        if(guess[i] == secret[i]) {
+        if(mastermind->guess[i] == mastermind->secret[i]) {
             matched[i] = 1;
-            placed++;
+            mastermind->placed++;
         }
     }
     // check for misplaced
     // iterate guess
     for (int i = 0; i < CODE_SIZE; i++) {
-        if (guess[i] != secret[i]) {
+        if (mastermind->guess[i] != mastermind->secret[i]) {
             // iterate secret
             for (int j = 0; j < CODE_SIZE; j++) {
-                if (!matched[j] && guess[i] == secret[j]) {
+                if (!matched[j] && mastermind->guess[i] == mastermind->secret[j]) {
                     matched[j] = 1;
-                    misplaced++;
+                    mastermind->misplaced++;
                     break;
                 } 
             }
         }
     }
-    return placed == CODE_SIZE;
-}
-
-/*
-*
-* Generate a pseudo-random secret code and writes it to the provided buffer secret.
-*
-* @param char *secret
-*
-*/
-void generate_random_secret(char *secret) {
-    srand(time(NULL));
-    int i = 0;
-    while (i < CODE_SIZE) {
-        secret[i] = rand() % 9 + '0';
-        i++;
-    }
+    return mastermind->placed == CODE_SIZE;
 }
 
 /*
@@ -164,7 +102,7 @@ void setup_game(struct game *mastermind, int argc, char **argv) {
                         mastermind->secret[j] = argv[i + 1][j];
                     }
                 }
-                secret_valid = check_code_valid(mastermind->secret);
+                secret_valid = check_code_valid(mastermind->secret, CODE_SIZE);
                 if (!secret_valid) {
                     printf("Secret code is invalid. Random secret code was generated.\n");
                 }
@@ -185,7 +123,7 @@ void setup_game(struct game *mastermind, int argc, char **argv) {
         }
     }
     if (!secret_valid) {
-        generate_random_secret(mastermind->secret);
+        generate_random_secret(mastermind->secret, CODE_SIZE, 9);
     }
 }
 
@@ -195,6 +133,7 @@ int play_game(struct game *mastermind) {
 
     while (round < mastermind->max_guesses) {
         printf("---\nRound %d\n", round);
+        // TODO reset guess to '\0' before reading next guess
         if (!read_guess(mastermind->guess)) {
             return 0;
         }
