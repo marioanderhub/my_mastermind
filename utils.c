@@ -1,4 +1,8 @@
-#include "utils.h"
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 /*
 *
@@ -55,6 +59,23 @@ void generate_random_secret(char *secret, int size, int max) {
     int i = 0;
     while (i < size) {
         secret[i] = rand() % max + '0';
+        i++;
+    }
+}
+
+/*
+*
+* Sets n bytes of char buffer str to NUL byte ('\0').
+*
+* @param char *str
+* @param int bytes
+*
+*/
+void set_str_empty(char *str, int n) {
+    int i = 0;
+    
+    while (i < n) {
+        str[i] = '\0';
         i++;
     }
 }

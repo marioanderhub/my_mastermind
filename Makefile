@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -Werror -Wextra
 TARGET=my_mastermind
-SRC=main.c
+SRC=main.c utils.c game.c
 OBJ=$(SRC:.c=.o)
 
 .PHONY: all clean fclean re
