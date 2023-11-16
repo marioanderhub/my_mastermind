@@ -108,11 +108,16 @@ void setup_game(game *mastermind, int argc, char **argv) {
 */
 int read_guess(char *guess) {
     int valid = 0;
+    int bytes_read = 0;
+
     while (!valid) {
-        if (!read_from_stdin(guess, CODE_SIZE)) {
+        bytes_read = read_from_stdin(guess, CODE_SIZE);
+        if (bytes_read == -1) {
             return 0;
         }
-        if (!(valid = check_str_valid(guess, CODE_SIZE, '0', '8'))) {
+        if(check_str_valid(guess, CODE_SIZE, '0', '8') && bytes_read == CODE_SIZE) {
+            valid = 1;
+        } else {
             printf("Wrong input!\n");
         }
     }

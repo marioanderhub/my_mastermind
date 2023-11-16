@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 
 /*
@@ -25,24 +26,32 @@ int check_str_valid(char *str, int size, char min, char max) {
 /*
 *
 * Reads from stdin character by character and puts the first n
-* characters into the provided buffer.
+* characters into the provided buffer. Reads until newline is reached.
 *
 * @param char *buf
+* @param int n
 *
-* @return 1 if character(s) successfully read, 0 on error or EOF
+* @return number of total bytes read before newline is encountered; -1 on error or EOF
 *
 */
 int read_from_stdin(char *buf, int n) {
-    char char_read;
-    int i = 0;
+    char char_read = '\0';
     int bytes_read = 0;
-    while((bytes_read = read(0, &char_read, 1)) > 0 && char_read != '\n') {
-        if (i < n) {
-            buf[i] = char_read;
-            i++;
+    int total_bytes_read = 0;
+    while(1) {
+        bytes_read = read(0, &char_read, 1);
+        if (bytes_read <= 0) {
+            return -1;
         }
+        if (char_read == '\n') {
+            break;
+        }
+        if (total_bytes_read < n) {
+            buf[total_bytes_read] = char_read;
+        }
+        total_bytes_read++;
     }
-    return bytes_read > 0;
+    return total_bytes_read;
 }
 
 /*
