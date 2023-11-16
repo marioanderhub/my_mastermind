@@ -4,17 +4,18 @@
 
 /*
 *
-* Evaluates whether the provided code is a valid mastermind code.
+* Evaluates whether the provided string is of length size
+* and only consists of ascii characters between min and max (both inclusive).
 *
-* @param char *code
+* @param char *str
 *
-* @return 1 if code is valid, else 0
+* @return 1 if requirements are met, else 0
 *
 */
-int check_code_valid(char *code, int size) {
+int check_str_valid(char *str, int size, char min, char max) {
     int i = 0;
-    while (code[i]) {
-        if (code[i] < '0' || code[i] > '8')
+    while (str[i]) {
+        if (str[i] < min || str[i] > max)
             break;
         i++;
     }
@@ -23,40 +24,40 @@ int check_code_valid(char *code, int size) {
 
 /*
 *
-* Reads from stdin character by character and puts the first CODE_SIZE
-* number of characters into the provided guess buffer.
+* Reads from stdin character by character and puts the first n
+* characters into the provided buffer.
 *
-* @param char *guess
+* @param char *buf
 *
 * @return 1 if character(s) successfully read, 0 on error or EOF
 *
 */
-int read_from_stdin(char *guess, int size) {
+int read_from_stdin(char *buf, int n) {
     char char_read;
     int i = 0;
     int bytes_read = 0;
     while((bytes_read = read(0, &char_read, 1)) > 0 && char_read != '\n') {
-        if (i < size) {
-            guess[i] = char_read;
+        if (i < n) {
+            buf[i] = char_read;
             i++;
         }
     }
-    // if bytes_read <= 0 either EOF (crtl + d) encountered (0) or error while reading (-1)
     return bytes_read > 0;
 }
 
 /*
 *
-* Generate a pseudo-random secret code and writes it to the provided buffer secret.
+* Generate a pseudo-random sequence of n char digits and writes them to the provided buffer.
+* Chars can have value from '0' to max (exclusive).
 *
-* @param char *secret
+* @param char *buf
 *
 */
-void generate_random_secret(char *secret, int size, int max) {
+void generate_random_secret(char *buf, int n, int max) {
     srand(time(NULL));
     int i = 0;
-    while (i < size) {
-        secret[i] = rand() % max + '0';
+    while (i < n) {
+        buf[i] = rand() % max + '0';
         i++;
     }
 }
