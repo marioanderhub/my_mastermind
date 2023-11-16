@@ -5,22 +5,25 @@
 
 /*
 *
-* Evaluates whether the provided string is of length size
+* Evaluates whether the provided string is of length n
 * and only consists of ascii characters between min and max (both inclusive).
 *
 * @param char *str
+* @param int n
+* @param char min
+* @param max
 *
 * @return 1 if requirements are met, else 0
 *
 */
-int check_str_valid(char *str, int size, char min, char max) {
+int check_str_valid(char *str, int n, char min, char max) {
     int i = 0;
     while (str[i]) {
         if (str[i] < min || str[i] > max)
             break;
         i++;
     }
-    return i == size;
+    return i == n;
 }
 
 /*
@@ -57,9 +60,11 @@ int read_from_stdin(char *buf, int n) {
 /*
 *
 * Generate a pseudo-random sequence of n char digits and writes them to the provided buffer.
-* Chars can have value from '0' to max (exclusive).
+* Char digits from 0 to max (exclusive).
 *
 * @param char *buf
+* @param int n
+* @param int max
 *
 */
 void generate_random_secret(char *buf, int n, int max) {
@@ -76,7 +81,7 @@ void generate_random_secret(char *buf, int n, int max) {
 * Sets n bytes of char buffer str to NUL byte ('\0').
 *
 * @param char *str
-* @param int bytes
+* @param int n
 *
 */
 void set_str_empty(char *str, int n) {
