@@ -2,17 +2,22 @@
 ***
 
 ## Task
-Implement a simple game of interactive mastermind.
+The task is to implement a simple cli version of the classic Mastermind game.
+The complexity of this task lies in reading user input from the command line, handling multiple program options
+implementing logic to evaluate user guesses and provide useful feedback.
 
 ## Description
-TODO - How have you solved the problem?
+I defined a struct to represent the game state. This game state is filled with user input or default values.
+The game loop manages user input, evaluates the user input and returns useful feedback.
 
 ## Installation
-make
+my_mastermind can be compiled by running make
 
 ## Usage
 ```
-./my_mastermind -c "code" -t #attempts
+./my_mastermind [options] [params]
+./my_mastermind -c [code]
+./my_mastermind -t [#attemps]
 ```
 
 ### The Core Team
