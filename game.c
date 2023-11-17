@@ -66,7 +66,7 @@ void handle_t_flag(game *mastermind, int argc, char **argv, int i) {
             printf("Number of attempts is invalid. Default of %d is used.\n", DEFAULT_GUESSES);
         }
     } else {
-        printf("Option -t requires an argument, but none was provided. The default of attempts %d attempts was set.\n", DEFAULT_GUESSES);
+        printf("Option -t requires an argument, but none was provided. The number of attempts was set to %d.\n", DEFAULT_GUESSES);
     }
 }
 
